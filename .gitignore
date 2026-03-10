@@ -1,0 +1,5 @@
+venv/
+__pycache__/
+*.pyc
+best_model.pt
+.DS_Store
