@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.optim import AdamW
-from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score, average_precision_score
 import numpy as np
 
 from dataset import get_dataloaders
@@ -61,15 +61,18 @@ def evaluate(model, loader, criterion, device):
     
     try:
         auroc = roc_auc_score(y_true, y_pred_probs)
+        auprc = average_precision_score(y_true, y_pred_probs)
     except ValueError:
         auroc = 0.5 # In case only one class is present in the batch
+        auprc = 0.0
         
     metrics = {
         'loss': avg_loss,
         'acc': acc,
         'prec': prec,
         'rec': rec,
-        'auroc': auroc
+        'auroc': auroc,
+        'auprc': auprc
     }
     
     return metrics
@@ -102,7 +105,8 @@ def main():
         print(f"Epoch {epoch+1:02d}/{epochs} | "
               f"Train Loss: {train_loss:.4f} | "
               f"Val Loss: {val_metrics['loss']:.4f} | "
-              f"Val AUROC: {val_metrics['auroc']:.4f}")
+              f"Val AUROC: {val_metrics['auroc']:.4f} | "
+              f"Val AUPRC: {val_metrics['auprc']:.4f}")
               
         if val_metrics['loss'] < best_val_loss:
             best_val_loss = val_metrics['loss']
@@ -118,6 +122,7 @@ def main():
     print(f"Test Precision: {test_metrics['prec']:.4f}")
     print(f"Test Recall:    {test_metrics['rec']:.4f}")
     print(f"Test AUROC:     {test_metrics['auroc']:.4f}")
+    print(f"Test AUPRC:     {test_metrics['auprc']:.4f}")
 
 if __name__ == "__main__":
     main()
