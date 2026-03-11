@@ -2,51 +2,63 @@ import torch
 import torch.nn as nn
 import math
 
-class ResidualBlock(nn.Module):
-    def __init__(self, channels: int, dilation: int):
+class Attention(nn.Module):
+    def __init__(self, hidden_dim):
         super().__init__()
-        self.conv1 = nn.Conv1d(channels, channels, kernel_size=3, padding='same', dilation=dilation)
-        self.bn1 = nn.BatchNorm1d(channels)
-        self.relu = nn.ReLU()
-        self.conv2 = nn.Conv1d(channels, channels, kernel_size=3, padding='same', dilation=dilation)
-        self.bn2 = nn.BatchNorm1d(channels)
-        self.dropout = nn.Dropout(0.2)
+        self.attention = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim // 2),
+            nn.Tanh(),
+            nn.Linear(hidden_dim // 2, 1, bias=False)
+        )
         
     def forward(self, x):
-        residual = x
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
-        out = self.dropout(out)
-        out = self.conv2(out)
-        out = self.bn2(out)
-        return self.relu(out + residual)
+        # x: (Batch, SeqLen, HiddenDim)
+        attn_weights = self.attention(x) # (Batch, SeqLen, 1)
+        attn_weights = torch.softmax(attn_weights, dim=1) # Normalize over SeqLen
+        
+        # Weighted sum of BiLSTM outputs
+        context = torch.sum(attn_weights * x, dim=1) # (Batch, HiddenDim)
+        return context
 
 class HybridNuMTModel(nn.Module):
     def __init__(self, 
                  in_channels: int = 4, 
                  conv_hidden: int = 64, 
+                 kernel_size: int = 8, 
+                 lstm_hidden: int = 64, 
+                 num_layers: int = 2, 
                  dropout: float = 0.2):
         super().__init__()
         
-        # 1. Stem (Initial projection)
+        # 1. Stem (Local Motifs + Downsampling)
         self.stem = nn.Sequential(
-            nn.Conv1d(in_channels, conv_hidden, kernel_size=8, padding='same'),
+            nn.Conv1d(in_channels=in_channels, out_channels=conv_hidden, kernel_size=kernel_size, padding='same'),
             nn.BatchNorm1d(conv_hidden),
-            nn.ReLU()
+            nn.ReLU(),
+            nn.MaxPool1d(2),
+            nn.Conv1d(in_channels=conv_hidden, out_channels=conv_hidden*2, kernel_size=kernel_size, padding='same'),
+            nn.BatchNorm1d(conv_hidden*2),
+            nn.ReLU(),
+            nn.MaxPool1d(2),
+            nn.Dropout(dropout)
         )
         
-        # 2. Body (Dilated Residual Blocks - TCN style)
-        self.blocks = nn.Sequential(
-            ResidualBlock(conv_hidden, dilation=1),
-            ResidualBlock(conv_hidden, dilation=2),
-            ResidualBlock(conv_hidden, dilation=4),
-            ResidualBlock(conv_hidden, dilation=8)
+        # 2. Body (BiLSTM)
+        self.lstm = nn.LSTM(
+            input_size=conv_hidden*2,
+            hidden_size=lstm_hidden,
+            num_layers=num_layers,
+            batch_first=True,
+            bidirectional=True,
+            dropout=dropout if num_layers > 1 else 0
         )
         
-        # 3. Head (Classification)
+        # 3. Attention Layer
+        self.attention = Attention(lstm_hidden * 2)
+        
+        # 4. Head (Classification)
         self.head = nn.Sequential(
-            nn.Linear(conv_hidden, 32),
+            nn.Linear(lstm_hidden * 2, 32),
             nn.BatchNorm1d(32),
             nn.ReLU(),
             nn.Dropout(dropout),
@@ -57,14 +69,17 @@ class HybridNuMTModel(nn.Module):
         """
         x: (Batch, 4, SeqLen)
         """
-        x = self.stem(x) # (Batch, conv_hidden, SeqLen)
+        x = self.stem(x) # (Batch, conv_hidden*2, SeqLen/4)
         
-        x = self.blocks(x) # (Batch, conv_hidden, SeqLen)
+        # Prepare for LSTM
+        x = x.transpose(1, 2) # (Batch, SeqLen/4, conv_hidden*2)
         
-        # Global Average Pooling over the sequence dimension
-        x = x.mean(dim=2) # (Batch, conv_hidden)
+        lstm_out, _ = self.lstm(x) # (Batch, SeqLen/4, lstm_hidden*2)
         
-        out = self.head(x) # (Batch, 1)
+        # Apply Attention to gather focused context
+        context = self.attention(lstm_out) # (Batch, lstm_hidden*2)
+        
+        out = self.head(context) # (Batch, 1)
         return out.squeeze(-1)
 
 if __name__ == "__main__":
