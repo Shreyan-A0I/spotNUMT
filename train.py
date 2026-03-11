@@ -94,7 +94,7 @@ def main():
     criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     optimizer = AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
     
-    epochs = 15
+    epochs = 25
     best_val_loss = float('inf')
     
     print("\n--- Starting Training ---")
