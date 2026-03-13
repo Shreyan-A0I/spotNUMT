@@ -1,3 +1,14 @@
+---
+title: spotNUMT
+emoji: 🧬
+colorFrom: blue
+colorTo: green
+sdk: gradio
+sdk_version: 4.44.1
+app_file: app.py
+pinned: false
+---
+
 # spotNUMT: Mitochondrial Pseudogene Detector
 
 **spotNUMT** is a deep learning pipeline designed to distinguish true mitochondrial DNA (mtDNA) sequences from **NuMTs** (Nuclear Mitochondrial DNA sequences). 
