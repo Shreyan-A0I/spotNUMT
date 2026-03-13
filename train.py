@@ -85,8 +85,9 @@ def main():
     train_loader, val_loader, test_loader = get_dataloaders(batch_size=64)
     
     # Calculate pos_weight for Imbalanced Learning
-    # Originally 33.2 based on raw imbalance (2691/81), but that heavily sacrificed precision
-    pos_weight = torch.tensor([8.0]).to(device)
+    # From before: Pos: ~81, Neg: ~2691 across whole dataset.
+    # We can approximate pos_weight as ~ 2691 / 81 = 33.2
+    pos_weight = torch.tensor([33.2]).to(device)
     
     # Model, Loss, Optimizer
     model = HybridNuMTModel().to(device)

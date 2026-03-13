@@ -32,7 +32,7 @@ We systematically explored different architectures and class-balancing strategie
 | **Exp 5** | Focal Loss ($\alpha=0.75, \gamma=2.0$) | 25.0% | 12.5% | 0.22 | Dynamically down-weighting "easy" negatives made the model overly conservative. |
 | **Exp 6** | Reverse Complement Augmentation | 0% | 0% | 0.19 | Synthetically doubling the minority class coupled with Focal Loss led to model collapse. |
 
-*Conclusion*: Attempting to force the network to look *too* hard at minority samples using extreme algorithms destroys the discriminative boundary for NuMTs. Instead, the **CNN + BiLSTM + Attention** model with a tuned positive weight boundary (**Experiment 4**) achieves the best empirical balance between Precision and Recall. This architecture is set as the default model deployed in the repository.
+*Conclusion*: Attempting to force the network to look *too* hard at minority samples destroys the discriminative boundary for NuMTs. The raw **CNN + BiLSTM (Experiment 1)** architecture achieves the highest theoretical performance ceiling for capturing the complex sequence motifs.
 
 # Pipeline Components
 - `data_pipeline.py`: Slices FASTA genomes into uniform 200bp sequence windows, dropping fragments and unknown `N` bases.
