@@ -4,7 +4,7 @@
 
 NuMTs are ancient fragments of mitochondrial DNA that have transposed into the nuclear genome over evolutionary time. Because they share extreme sequence similarity with true mtDNA, they frequently act as confounders in genomic analysis, falsely presenting as mitochondrial mutations. This project utilizes deep neural networks to learn the subtle biological motifs and contexts required to confidently separate the two.
 
-## 🚀 Usage (Gradio Web Interface)
+# Usage (Gradio Web Interface)
 You can directly interact with the pre-trained Hybrid Model locally through a Gradio interface. Provide a raw string of DNA nucleotides (`A, C, G, T`) and get a prediction probability.
 
 ```bash
@@ -17,7 +17,7 @@ pip install -r requirements.txt
 python app.py
 ```
 
-## 🧠 Architecture Experiments & Validation
+## Architecture Experiments & Validation
 The dataset exhibits extreme class imbalance (roughly 1:33, true mtDNA to NuMTs). Standard metrics like Accuracy and AUROC can be misleadingly high due to the high True Negative rate. **AUPRC (Area Under the Precision-Recall Curve)** is utilized as the primary evaluation metric because it directly measures the trade-off between Precision and Recall.
 
 We systematically explored different architectures and class-balancing strategies to optimize detection:
