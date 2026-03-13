@@ -34,7 +34,7 @@ We systematically explored different architectures and class-balancing strategie
 
 *Conclusion*: Attempting to force the network to look *too* hard at minority samples destroys the discriminative boundary for NuMTs. The raw **CNN + BiLSTM (Experiment 1)** architecture achieves the highest theoretical performance ceiling for capturing the complex sequence motifs.
 
-## 📁 Pipeline Components
+# Pipeline Components
 - `data_pipeline.py`: Slices FASTA genomes into uniform 200bp sequence windows, dropping fragments and unknown `N` bases.
 - `dataset.py`: Converts sequence subsets into one-hot encoded PyTorch tensors `[A,C,G,T]` and establishes the `80/10/10` DataLoaders.
 - `model.py`: Natively defines the PyTorch `nn.Module` hybrid sequence classification architecture.
