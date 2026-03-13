@@ -12,15 +12,8 @@ NUC_MAP = {
     'C': [0.0, 1.0, 0.0, 0.0],
     'G': [0.0, 0.0, 1.0, 0.0],
     'T': [0.0, 0.0, 0.0, 1.0],
-    'N': [0.25, 0.25, 0.25, 0.25] 
+    'N': [0.25, 0.25, 0.25, 0.25] # Fallback, though we filtered them out
 }
-
-# Complement dictionary for DNA
-COMPLEMENT_MAP = str.maketrans('ACGTNacgtn', 'TGCANtgcan')
-
-def reverse_complement(sequence: str) -> str:
-    """Returns the reverse complement of a DNA sequence."""
-    return sequence.translate(COMPLEMENT_MAP)[::-1]
 
 def sequence_to_tensor(sequence: str) -> torch.Tensor:
     """
@@ -85,6 +78,8 @@ def get_dataloaders(
     all_seqs = pos_seqs + neg_seqs
     all_labels = pos_labels + neg_labels
     
+    print(f"Total sequences: {len(all_labels)} (Pos: {len(pos_labels)}, Neg: {len(neg_labels)})")
+    
     # 2. Split (80/10/10 -> Train/Val/Test)
     # First split off 20% for val/test combined
     X_train, X_tmp, y_train, y_tmp = train_test_split(
@@ -102,35 +97,12 @@ def get_dataloaders(
         stratify=y_tmp
     )
     
-    # 3. Data Augmentation (Reverse Complement) ONLY on the Train split to avoid validation leakage
-    # We only augment the positive class (label == 1) to synthetically oversample it
-    augmented_X_train = []
-    augmented_y_train = []
-    
-    for seq, label in zip(X_train, y_train):
-        augmented_X_train.append(seq)
-        augmented_y_train.append(label)
-        
-        # If it's a positive sample, generate its reverse complement
-        if label == 1:
-            # We already converted to tensor. Instead of converting back to string,
-            # we can biologically reverse complement the tensor directly.
-            # Tensor shape: (4, L). 
-            # Reverse along L dimension: torch.flip(seq, dims=[1])
-            # Complement along Channel dimension: [A, C, G, T] -> [T, G, C, A]
-            # Since A=0, C=1, G=2, T=3, the complement swap is: 0<->3, 1<->2.
-            # A simple flip along the channel dimension (dim=0) achieves exactly this!
-            rev_comp_seq = torch.flip(seq, dims=[0, 1])
-            augmented_X_train.append(rev_comp_seq)
-            augmented_y_train.append(label)
-
-    print(f"Train split (After Augmentation): {len(augmented_y_train)} sequences "
-          f"(Pos: {augmented_y_train.count(1)}, Neg: {augmented_y_train.count(0)})")
+    print(f"Train split: {len(y_train)} sequences")
     print(f"Val split:   {len(y_val)} sequences")
     print(f"Test split:  {len(y_test)} sequences")
     
-    # 4. Create Datasets
-    train_dataset = NuMTDataset(augmented_X_train, augmented_y_train)
+    # 3. Create Datasets
+    train_dataset = NuMTDataset(X_train, y_train)
     val_dataset = NuMTDataset(X_val, y_val)
     test_dataset = NuMTDataset(X_test, y_test)
     

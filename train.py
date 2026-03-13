@@ -1,33 +1,11 @@
 import torch
 import torch.nn as nn
 from torch.optim import AdamW
-
 from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score, average_precision_score
 import numpy as np
-import torch.nn.functional as F
 
 from dataset import get_dataloaders
 from model import HybridNuMTModel
-
-class FocalLoss(nn.Module):
-    def __init__(self, alpha=0.25, gamma=2.0, reduction='mean'):
-        super(FocalLoss, self).__init__()
-        self.alpha = alpha
-        self.gamma = gamma
-        self.reduction = reduction
-
-    def forward(self, inputs, targets):
-        # inputs are logits. compute bce with logits
-        BCE_loss = F.binary_cross_entropy_with_logits(inputs, targets, reduction='none')
-        pt = torch.exp(-BCE_loss) # prevents nans when probability 0
-        F_loss = self.alpha * (1-pt)**self.gamma * BCE_loss
-
-        if self.reduction == 'mean':
-            return torch.mean(F_loss)
-        elif self.reduction == 'sum':
-            return torch.sum(F_loss)
-        else:
-            return F_loss
 
 def train_epoch(model, loader, criterion, optimizer, device):
     model.train()
@@ -107,10 +85,12 @@ def main():
     train_loader, val_loader, test_loader = get_dataloaders(batch_size=64)
     
     # Calculate pos_weight for Imbalanced Learning
-    # For focal loss, alpha acts as the weighting. alpha=0.75 means we care more about the positive class.
-    # standard alpha is 0.25 (meaning neg class is weighted higher), but since we want to find positives, we invert.
+    # Originally 33.2 based on raw imbalance (2691/81), but that heavily sacrificed precision
+    pos_weight = torch.tensor([8.0]).to(device)
+    
+    # Model, Loss, Optimizer
     model = HybridNuMTModel().to(device)
-    criterion = FocalLoss(alpha=0.75, gamma=2.0)
+    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     optimizer = AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
     
     epochs = 25
