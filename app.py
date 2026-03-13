@@ -39,7 +39,7 @@ def predict(sequence):
 
 # Define Gradio Interface
 with gr.Blocks(title="spotNUMT - NuMT Detector", theme=gr.themes.Soft()) as app:
-    gr.Markdown("# 🧬 spotNUMT: Mitochondrial Pseudogene Detector")
+    gr.Markdown("spotNUMT: Mitochondrial Pseudogene Detector")
     gr.Markdown("Identify NuMTs (Nuclear Mitochondrial DNA sequences) using a Hybrid Conv1D-Transformer deep learning model.")
     
     with gr.Row():
